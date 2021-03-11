@@ -14,88 +14,107 @@ const contactContent = "Scelerisque eleifend donec pretium vulputate sapien. Rho
 const app = express();
 
 app.set('view engine', 'ejs');
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
 app.use(express.static("public"));
 
+//--------------------------------------------------
 //Setup Database
 const mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost/test', {useNewURLParser: true, useUnifiedTopology: true});
-
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', function(){
-  //we're connected!
+mongoose.connect('mongodb://localhost:27017/blog', {
+  useNewURLParser: true,
+  useUnifiedTopology: true
 });
 
+// const db = mongoose.connection;
+// db.on('error', console.error.bind(console, 'connection error:'));
+// db.once('open', function(){
+//   //we're connected!
+// });
+
 //Create Schema
-const kittySchema = new mongoose.Schema({
-  name: String
+const postSchema = new mongoose.Schema({
+  title: String,
+  content: String
 });
 
 //Create Model
-const Kitten = mongoose.model('Kitten', kittySchema);
+const Post = mongoose.model('Post', postSchema);
 
-//Create Document
-const silence = new Kitten({name: 'Silence'});
-console.log(silence.name); //'Silence'
+//------------------------------------
 
-//Save to db
-silence.save(function (err, silence){
-  if (err) return console.error(err); 
-});
-
-//Get db posts and assign to posts
-let posts = [];
 
 //Read Posts
-app.get("/", function(req, res){
-  res.render("home", {
-    startingContent: homeStartingContent,
-    posts: posts
+app.get("/", function(req, res) {
+  Post.find({}, function(err, foundPosts) {
+    res.render("home", {
+      startingContent: homeStartingContent,
+      posts: foundPosts
     });
+  });
+
+  // res.render("home", {
+  //   startingContent: homeStartingContent,
+  //   posts: posts
+  // });
 });
 
-app.get("/about", function(req, res){
-  res.render("about", {aboutContent: aboutContent});
+app.get("/about", function(req, res) {
+  res.render("about", {
+    aboutContent: aboutContent
+  });
 });
 
-app.get("/contact", function(req, res){
-  res.render("contact", {contactContent: contactContent});
+app.get("/contact", function(req, res) {
+  res.render("contact", {
+    contactContent: contactContent
+  });
 });
 
-app.get("/compose", function(req, res){
+app.get("/compose", function(req, res) {
   res.render("compose");
 });
 
 //Create Post
-app.post("/compose", function(req, res){
-  const post = {
+app.post("/compose", function(req, res) {
+  // const post = {
+  //   title: req.body.postTitle,
+  //   content: req.body.postBody
+  //};
+  //Create Document
+  const post = new Post({
     title: req.body.postTitle,
     content: req.body.postBody
-  };
+  });
+  console.log(post.title + "Saved to db");
 
-//Create new post in db from "post"
-//Create new const "savedPost"
-//Push savedPost to posts array
-  posts.push(post);
-
-  res.redirect("/");
-
+  //Save to db
+  post.save(function(err) {
+    if (!err) {  res.redirect("/");};
+  });
 });
 
-app.get("/posts/:postName", function(req, res){
-  const requestedTitle = _.lowerCase(req.params.postName);
+app.get("/posts/:postId", function(req, res) {
+  const requestedPostId = req.params.postId;
 
-  posts.forEach(function(post){
-    const storedTitle = _.lowerCase(post.title);
-
-    if (storedTitle === requestedTitle) {
-      res.render("post", {
-        title: post.title,
-        content: post.content
-      });
-    }
+  Post.findOne({_id: requestedPostId}, function(err, post){
+    res.render("post", {
+          title: post.title,
+          content: post.content
+        });
   });
+
+  // posts.forEach(function(post) {
+  //   const storedTitle = _.lowerCase(post.title);
+  //
+  //   if (storedTitle === requestedTitle) {
+  //     res.render("post", {
+  //       title: post.title,
+  //       content: post.content
+  //     });
+  //   }
+  // });
 
 });
 
